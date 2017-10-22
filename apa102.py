@@ -190,15 +190,23 @@ class APA102:
         self.leds = self.leds[cutoff:] + self.leds[:cutoff]
 
 
-    def show(self):
-        """Sends the content of the pixel buffer to the strip.
-
-        Todo: More than 1024 LEDs requires more than one xfer operation.
+    def chunks(self):
+        """Creates chunks of data
+        
+        Needed for > 1024 LEDs because SPI only takes up to 4096 Integers.
         """
+        l = list(self.leds)
+        n = 4096
+        for i in range(0, len(l), n):
+            yield l[i:min(i + n, len(l))]
+
+    def show(self):
+        """Sends the content of the pixel buffer to the strip."""
         self.clock_start_frame()
         # xfer2 kills the list, unfortunately. So it must be copied first
         # SPI takes up to 4096 Integers. So we are fine for up to 1024 LEDs.
-        self.spi.xfer2(list(self.leds))
+        for chunk in self.chunks():
+            self.spi.xfer2(chunk)
         self.clock_end_frame()
 
 
